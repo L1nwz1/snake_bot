@@ -184,7 +184,6 @@ export default {
                     bots.value = resp;
                 }
             })
-
         }
 
         refresh_bots();
