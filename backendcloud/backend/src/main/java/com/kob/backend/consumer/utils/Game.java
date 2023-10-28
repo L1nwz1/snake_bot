@@ -4,6 +4,7 @@ import com.alibaba.fastjson2.JSONObject;
 import com.kob.backend.consumer.WebSocketServer;
 import com.kob.backend.pojo.Bot;
 import com.kob.backend.pojo.Record;
+import com.kob.backend.pojo.User;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
@@ -23,9 +24,10 @@ public class Game extends Thread {
     private Integer nextStepA = null;
     private Integer nextStepB = null;
     private ReentrantLock lock = new ReentrantLock();
-    private String status = "playing"; // playing -> finished
-    private String loser = ""; // all: 平局, A: A输, B: B输
+    private String status = "playing";  // playing -> finished
+    private String loser = "";  // all: 平局，A: A输，B: B输
     private final static String addBotUrl = "http://127.0.0.1:3002/bot/add/";
+
     public Game(
             Integer rows,
             Integer cols,
@@ -34,7 +36,7 @@ public class Game extends Thread {
             Bot botA,
             Integer idB,
             Bot botB
-     ) {
+    ) {
         this.rows = rows;
         this.cols = cols;
         this.inner_walls_count = inner_walls_count;
@@ -42,7 +44,7 @@ public class Game extends Thread {
 
         Integer botIdA = -1, botIdB = -1;
         String botCodeA = "", botCodeB = "";
-        if (botA!= null) {
+        if (botA != null) {
             botIdA = botA.getId();
             botCodeA = botA.getContent();
         }
@@ -50,15 +52,14 @@ public class Game extends Thread {
             botIdB = botB.getId();
             botCodeB = botB.getContent();
         }
-
         playerA = new Player(idA, botIdA, botCodeA, rows - 2, 1, new ArrayList<>());
         playerB = new Player(idB, botIdB, botCodeB, 1, cols - 2, new ArrayList<>());
-
     }
 
     public Player getPlayerA() {
         return playerA;
     }
+
     public Player getPlayerB() {
         return playerB;
     }
@@ -73,7 +74,6 @@ public class Game extends Thread {
     }
 
     public void setNextStepB(Integer nextStepB) {
-
         lock.lock();
         try {
             this.nextStepB = nextStepB;
@@ -144,9 +144,7 @@ public class Game extends Thread {
         }
     }
 
-    private String getInput(Player player) { // 将当前的局面信息编码成字符串
-        // map # me.sx # me.sy # me.movement # you.sx # you.sy # you.movement
-        // movement : 0123的序列
+    private String getInput(Player player) {  // 将当前的局面信息，编码成字符串
         Player me, you;
         if (playerA.getId().equals(player.getId())) {
             me = playerA;
@@ -163,21 +161,18 @@ public class Game extends Thread {
                 you.getSx() + "#" +
                 you.getSy() + "#(" +
                 you.getStepsString() + ")";
-
     }
 
     private void sendBotCode(Player player) {
-        if (player.getBotId().equals(-1)) return; //亲自出马，不需要执行代码
+        if (player.getBotId().equals(-1)) return;  // 亲自出马，不需要执行代码
         MultiValueMap<String, String> data = new LinkedMultiValueMap<>();
         data.add("user_id", player.getId().toString());
         data.add("bot_code", player.getBotCode());
         data.add("input", getInput(player));
-
         WebSocketServer.restTemplate.postForObject(addBotUrl, data, String.class);
-
     }
 
-    private boolean nextStep() { // 等待两名玩家的下一步操作
+    private boolean nextStep() {  // 等待两名玩家的下一步操作
         try {
             Thread.sleep(200);
         } catch (InterruptedException e) {
@@ -201,34 +196,32 @@ public class Game extends Thread {
                     lock.unlock();
                 }
             } catch (InterruptedException e) {
-                throw new RuntimeException(e);
+                e.printStackTrace();
             }
         }
 
         return false;
     }
 
-    private boolean check_valid(List<Cell> cellsA, List<Cell> cellsB){
-        int n =cellsA.size();
+    private boolean check_valid(List<Cell> cellsA, List<Cell> cellsB) {
+        int n = cellsA.size();
         Cell cell = cellsA.get(n - 1);
         if (g[cell.x][cell.y] == 1) return false;
 
         for (int i = 0; i < n - 1; i ++ ) {
-            if (cellsA.get(i).x == cell.x && cellsA.get(i).y == cell.y) {
+            if (cellsA.get(i).x == cell.x && cellsA.get(i).y == cell.y)
                 return false;
-            }
         }
 
         for (int i = 0; i < n - 1; i ++ ) {
-            if (cellsB.get(i).x == cell.x && cellsB.get(i).y == cell.y) {
+            if (cellsB.get(i).x == cell.x && cellsB.get(i).y == cell.y)
                 return false;
-            }
         }
 
         return true;
     }
 
-    private void judge() { // 判断两名玩家操作是否合法
+    private void judge() {  // 判断两名玩家下一步操作是否合法
         List<Cell> cellsA = playerA.getCells();
         List<Cell> cellsB = playerB.getCells();
 
@@ -236,6 +229,7 @@ public class Game extends Thread {
         boolean validB = check_valid(cellsB, cellsA);
         if (!validA || !validB) {
             status = "finished";
+
             if (!validA && !validB) {
                 loser = "all";
             } else if (!validA) {
@@ -247,16 +241,13 @@ public class Game extends Thread {
     }
 
     private void sendAllMessage(String message) {
-        if (WebSocketServer.users.get(playerA.getId()) != null) {
+        if (WebSocketServer.users.get(playerA.getId()) != null)
             WebSocketServer.users.get(playerA.getId()).sendMessage(message);
-        }
-        if (WebSocketServer.users.get(playerB.getId()) != null) {
+        if (WebSocketServer.users.get(playerB.getId()) != null)
             WebSocketServer.users.get(playerB.getId()).sendMessage(message);
-        }
-
     }
 
-    private void sendMove() { // 向两个客户端返回信息
+    private void sendMove() {  // 向两个Client传递移动信息
         lock.lock();
         try {
             JSONObject resp = new JSONObject();
@@ -268,7 +259,6 @@ public class Game extends Thread {
         } finally {
             lock.unlock();
         }
-
     }
 
     private String getMapString() {
@@ -281,8 +271,27 @@ public class Game extends Thread {
         return res.toString();
     }
 
+    private void updateUserRating(Player player, Integer rating) {
+        User user = WebSocketServer.userMapper.selectById(player.getId());
+        user.setRating(rating);
+        WebSocketServer.userMapper.updateById(user);
+    }
 
-    private void saveToDataBase() { // 保存记录到数据库
+    private void saveToDatabase() {
+        Integer ratingA = WebSocketServer.userMapper.selectById(playerA.getId()).getRating();
+        Integer ratingB = WebSocketServer.userMapper.selectById(playerB.getId()).getRating();
+
+        if ("A".equals(loser)) {
+            ratingA -= 2;
+            ratingB += 5;
+        } else if ("B".equals(loser)) {
+            ratingA += 5;
+            ratingB -= 2;
+        }
+
+        updateUserRating(playerA, ratingA);
+        updateUserRating(playerB, ratingB);
+
         Record record = new Record(
                 null,
                 playerA.getId(),
@@ -301,20 +310,18 @@ public class Game extends Thread {
         WebSocketServer.recordMapper.insert(record);
     }
 
-    private void sendResult() { // 向两个客户端公布结果
+    private void sendResult() {  // 向两个Client公布结果
         JSONObject resp = new JSONObject();
         resp.put("event", "result");
         resp.put("loser", loser);
-        saveToDataBase();
+        saveToDatabase();
         sendAllMessage(resp.toJSONString());
-
     }
-
 
     @Override
     public void run() {
         for (int i = 0; i < 1000; i ++ ) {
-            if (nextStep()) { // 是否获取两条蛇的下一步操作
+            if (nextStep()) {  // 是否获取了两条蛇的下一步操作
                 judge();
                 if (status.equals("playing")) {
                     sendMove();
@@ -340,6 +347,5 @@ public class Game extends Thread {
                 break;
             }
         }
-
     }
 }

@@ -1,5 +1,3 @@
-
-
 export default {
     state: {
         status: "matching", //matching表示正在匹配, playing表示正在对战
