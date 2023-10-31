@@ -94,7 +94,7 @@ export default {
         const pull_page = page => {
             current_page = page;
             $.ajax({
-                url: "http://127.0.0.1:3000/record/getlist/",
+                url: "https://app3938.acapp.acwing.com.cn/api/record/getlist/",
                 data: {
                     page,
                 },
@@ -132,7 +132,7 @@ export default {
             for (const record of records.value) {
                 if (record.record.id === recordId) {
                     store.commit("updateIsRecord", true);
-                    store.commit("updateGame", {
+                    store.commit("updateGamemap", {
                         map: stringTo2D(record.record.map),
                         a_id: record.record.aid,
                         a_sx: record.record.asx,
