@@ -8,4 +8,4 @@ Blocking and moving to win the game
 
 ### Frame
 
-![Frame](D:\java spring\snake_bot\frame.jpg)
+![Frame](frame.jpg)
